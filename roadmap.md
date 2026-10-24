@@ -72,12 +72,12 @@
 
 **Ziel:** Bevor du komprimierst, musst du messen können.
 
-- [ ] Rust-Projekt anlegen (`cargo new`), CLI mit zwei Befehlen: `compress` und `decompress`
-- [ ] Git-Repo anlegen, von Anfang an öffentlich oder später veröffentlichen
-- [ ] Testdaten herunterladen: Silesia-Korpus und `enwik8` (100 MB Wikipedia)
-- [ ] **Entropie-Rechner** schreiben: Wie viele Bits pro Byte braucht eine Datei theoretisch (Order-0)?
-- [ ] Benchmark-Skript: Grösse, Zeit, Vergleich mit `gzip -9`, `xz -9`, `zstd -19`
-- [ ] Datei `BENCHMARKS.md` anlegen, in die du jedes Ergebnis einträgst
+- [x] Rust-Projekt anlegen (`cargo new`), CLI mit zwei Befehlen: `compress` und `decompress`
+- [x] Git-Repo anlegen, von Anfang an öffentlich oder später veröffentlichen
+- [x] Testdaten herunterladen: Silesia-Korpus und `enwik8` (100 MB Wikipedia)
+- [x] **Entropie-Rechner** schreiben: Wie viele Bits pro Byte braucht eine Datei theoretisch (Order-0)?
+- [x] Benchmark-Skript: Grösse, Zeit, Vergleich mit `gzip -9`, `xz -9`, `zstd -19`
+- [x] Datei `BENCHMARKS.md` anlegen, in die du jedes Ergebnis einträgst
 
 **Konzepte:** Shannon-Entropie, Bits pro Byte (bpc), Kompressionsrate
 
