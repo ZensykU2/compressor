@@ -1,4 +1,5 @@
 mod bits;
+mod huffman;
 mod rle;
 use std::env;
 use std::fs;
@@ -23,6 +24,17 @@ fn main() {
             println!("Grösse:   {} Bytes", data.len());
             println!("entropy: {:.4} Bits pro Byte", h);
             println!("Theor. Min.:  {:.0} Bytes", min_bytes);
+        }
+        "huffman" => {
+            let data = fs::read(&args[2]).expect("cannot read file");
+            let freqs = huffman::count_frequencies(&data);
+            let lengths = huffman::code_lengths(&freqs);
+            let total_bits: u64 = (0..256).map(|s| freqs[s] * lengths[s] as u64).sum();
+            println!(
+                "Huffman: {:.4} bits per byte",
+                total_bits as f64 / data.len() as f64
+            );
+            println!("Size:    {} bytes (without header)", total_bits.div_ceil(8));
         }
         "compress" | "decompress" => {
             if args.len() < 4 {
