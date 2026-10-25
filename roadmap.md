@@ -89,11 +89,11 @@
 
 **Ziel:** Bitweises Lesen/Schreiben beherrschen und einen ersten echten Kompressor haben.
 
-- [ ] **BitWriter / BitReader** schreiben (wirst du überall wiederverwenden)
-- [ ] RLE implementieren (beide Konventionen: Anzahl und Anzahl−1)
-- [ ] Huffman: Häufigkeiten zählen → Baum bauen → Codes erzeugen → kodieren
-- [ ] Huffman-Tabelle in die Datei schreiben, damit der Decoder sie kennt
-- [ ] **Roundtrip-Test:** `decompress(compress(x)) == x` für alle Testdateien
+- [X] **BitWriter / BitReader** schreiben (wirst du überall wiederverwenden)
+- [X] RLE implementieren (beide Konventionen: Anzahl und Anzahl−1)
+- [X] Huffman: Häufigkeiten zählen → Baum bauen → Codes erzeugen → kodieren
+- [X] Huffman-Tabelle in die Datei schreiben, damit der Decoder sie kennt
+- [X] **Roundtrip-Test:** `decompress(compress(x)) == x` für alle Testdateien
 
 **Konzepte:** Präfixfreie Codes, Codebaum, kanonischer Huffman-Code
 
