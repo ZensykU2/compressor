@@ -1,3 +1,4 @@
+mod arithmetic;
 mod bits;
 mod huffman;
 mod rle;
