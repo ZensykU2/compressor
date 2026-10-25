@@ -1,3 +1,6 @@
+/// `write_bits` / `read_bits` work with a u32, so at most 32 bits at once
+pub const MAX_BITS_AT_ONCE: u8 = u32::BITS as u8;
+
 pub struct BitWriter {
     bytes: Vec<u8>,
     current: u8,
@@ -24,7 +27,7 @@ impl BitWriter {
     }
 
     pub fn write_bits(&mut self, value: u32, n: u8) {
-        assert!(n <= 32, "write_bits: at most 32 bits");
+        assert!(n <= MAX_BITS_AT_ONCE, "write_bits: too many bits at once");
         for i in (0..n).rev() {
             let bit = (value >> i) & 1 == 1;
             self.write_bit(bit);
@@ -67,7 +70,7 @@ impl<'a> BitReader<'a> {
     }
 
     pub fn read_bits(&mut self, n: u8) -> Option<u32> {
-        assert!(n <= 32, "read_bits: at most 32 bits");
+        assert!(n <= MAX_BITS_AT_ONCE, "read_bits: too many bits at once");
         let mut value = 0u32;
         for _ in 0..n {
             let bit = self.read_bit()?;
@@ -106,14 +109,14 @@ mod tests {
         writer.write_bits(5, 3);
         writer.write_bits(0, 1);
         writer.write_bits(1000, 10);
-        writer.write_bits(0xFFFF_FFFF, 32);
+        writer.write_bits(u32::MAX, MAX_BITS_AT_ONCE); // all ones
         let bytes = writer.finish();
 
         let mut reader = BitReader::new(&bytes);
         assert_eq!(reader.read_bits(3), Some(5));
         assert_eq!(reader.read_bits(1), Some(0));
         assert_eq!(reader.read_bits(10), Some(1000));
-        assert_eq!(reader.read_bits(32), Some(0xFFFF_FFFF));
+        assert_eq!(reader.read_bits(MAX_BITS_AT_ONCE), Some(u32::MAX));
     }
 
     #[test]

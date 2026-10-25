@@ -30,7 +30,9 @@ fn main() {
             let data = fs::read(&args[2]).expect("cannot read file");
             let freqs = huffman::count_frequencies(&data);
             let lengths = huffman::code_lengths(&freqs);
-            let total_bits: u64 = (0..256).map(|s| freqs[s] * lengths[s] as u64).sum();
+            let total_bits: u64 = (0..huffman::SYMBOLS)
+                .map(|s| freqs[s] * lengths[s] as u64)
+                .sum();
             println!(
                 "Huffman: {:.4} bits per byte",
                 total_bits as f64 / data.len() as f64
@@ -62,10 +64,7 @@ fn order0_entropy(data: &[u8]) -> f64 {
         return 0.0;
     }
 
-    let mut counter = [0u64; 256];
-    for &byte in data {
-        counter[byte as usize] += 1;
-    }
+    let counter = huffman::count_frequencies(data);
 
     let n = data.len() as f64;
     let mut entropy = 0.0;

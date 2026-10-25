@@ -1,3 +1,6 @@
+/// We store `length - 1` in one byte, so a run can be at most 255 + 1 = 256 long.
+const MAX_RUN: usize = u8::MAX as usize + 1;
+
 pub fn encode(input: &[u8]) -> Vec<u8> {
     let mut output = Vec::new();
     let mut i = 0;
@@ -6,7 +9,7 @@ pub fn encode(input: &[u8]) -> Vec<u8> {
         // Count how many equal bytes follow
         let mut run = 1;
 
-        while i + run < input.len() && input[i + run] == value && run < 256 {
+        while i + run < input.len() && input[i + run] == value && run < MAX_RUN {
             run += 1;
         }
 
