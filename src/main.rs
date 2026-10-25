@@ -1,4 +1,5 @@
 mod bits;
+mod rle;
 use std::env;
 use std::fs;
 use std::process;
@@ -25,11 +26,16 @@ fn main() {
         }
         "compress" | "decompress" => {
             if args.len() < 4 {
-                eprintln!("Ausgabedatei fehlt");
+                eprintln!("missing output file");
                 process::exit(1);
             }
-            let data = fs::read(&args[2]).expect("Eingabe nicht lesbar");
-            fs::write(&args[3], &data).expect("Ausgabe nicht schreibbar");
+            let input = fs::read(&args[2]).expect("cannot read input");
+            let output = if args[1] == "compress" {
+                rle::encode(&input)
+            } else {
+                rle::decode(&input)
+            };
+            fs::write(&args[3], &output).expect("cannot write output");
         }
         other => {
             eprintln!("Unbekannter Befehl: {other}");
