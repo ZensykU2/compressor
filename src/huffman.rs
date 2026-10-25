@@ -1,5 +1,7 @@
 use std::cmp::Reverse;
-use std::collections::BinaryHeap;
+use std::collections::{BinaryHeap, HashMap};
+
+use crate::bits::{BitReader, BitWriter};
 
 /// Counts frequency of reoccurring byte values.
 pub fn count_frequencies(data: &[u8]) -> [u64; 256] {
@@ -64,6 +66,67 @@ pub fn canonical_codes(lengths: &[u8; 256]) -> [u32; 256] {
     codes
 }
 
+const HEADER_SIZE: usize = 8 + 256;
+
+pub fn encode(data: &[u8]) -> Vec<u8> {
+    let freqs = count_frequencies(data);
+    let lengths = code_lengths(&freqs);
+    let codes = canonical_codes(&lengths);
+
+    let mut output = Vec::new();
+    output.extend_from_slice(&(data.len() as u64).to_le_bytes());
+    output.extend_from_slice(&lengths);
+
+    let mut writer = BitWriter::new();
+    for &byte in data {
+        writer.write_bits(codes[byte as usize], lengths[byte as usize]);
+    }
+    output.extend(writer.finish());
+    output
+}
+
+pub fn decode(input: &[u8]) -> Option<Vec<u8>> {
+    if input.len() < HEADER_SIZE {
+        return None;
+    }
+
+    let original_len = u64::from_le_bytes(input[0..8].try_into().unwrap()) as usize;
+    let lengths: [u8; 256] = input[8..HEADER_SIZE].try_into().unwrap();
+    let body = &input[HEADER_SIZE..];
+
+    if original_len > body.len() * 8 {
+        return None;
+    }
+
+    let codes = canonical_codes(&lengths);
+    let mut table = HashMap::new();
+    for symbol in 0..256 {
+        if lengths[symbol] > 0 {
+            table.insert((lengths[symbol], codes[symbol]), symbol as u8);
+        }
+    }
+
+    let mut reader = BitReader::new(body);
+    let mut output = Vec::with_capacity(original_len);
+    while output.len() < original_len {
+        let mut code = 0u32;
+        let mut length = 0u8;
+        loop {
+            let bit = reader.read_bit()?;
+            code = (code << 1) | bit as u32;
+            length += 1;
+            if let Some(&symbol) = table.get(&(length, code)) {
+                output.push(symbol);
+                break;
+            }
+            if length >= 32 {
+                return None;
+            }
+        }
+    }
+    Some(output)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -98,8 +161,6 @@ mod tests {
 
     #[test]
     fn kraft_sum_is_exactly_one() {
-        // A complete Huffman code fills the "code space" exactly:
-        // the sum of 2^(-length) over all symbols is 1.
         let text = b"the quick brown fox jumps over the lazy dog, again and again";
         let lengths = code_lengths(&count_frequencies(text));
         let sum: u64 = lengths
@@ -108,5 +169,44 @@ mod tests {
             .map(|&l| 1u64 << (32 - l))
             .sum();
         assert_eq!(sum, 1u64 << 32);
+    }
+
+    fn roundtrip(data: &[u8]) {
+        assert_eq!(decode(&encode(data)), Some(data.to_vec()));
+    }
+
+    #[test]
+    fn roundtrip_special_cases() {
+        roundtrip(b"");
+        roundtrip(b"x");
+        roundtrip(b"zzzz");
+        roundtrip(b"aaaabbc");
+        roundtrip(b"the quick brown fox jumps over the lazy dog");
+        let all_bytes: Vec<u8> = (0..=255).collect();
+        roundtrip(&all_bytes);
+    }
+
+    #[test]
+    fn padding_does_not_add_symbols() {
+        let compressed = encode(b"aab");
+        assert_eq!(compressed.len(), HEADER_SIZE + 1);
+        assert_eq!(decode(&compressed), Some(b"aab".to_vec()));
+    }
+
+    #[test]
+    fn pseudo_random_data() {
+        let mut x: u32 = 12345;
+        let data: Vec<u8> = (0..10_000)
+            .map(|_| {
+                x = x.wrapping_mul(1103515245).wrapping_add(12345);
+                (x >> 16) as u8
+            })
+            .collect();
+        roundtrip(&data);
+    }
+
+    #[test]
+    fn too_short_input_is_rejected() {
+        assert_eq!(decode(&[1, 2, 3]), None);
     }
 }

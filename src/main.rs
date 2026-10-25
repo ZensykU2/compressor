@@ -43,9 +43,9 @@ fn main() {
             }
             let input = fs::read(&args[2]).expect("cannot read input");
             let output = if args[1] == "compress" {
-                rle::encode(&input)
+                huffman::encode(&input)
             } else {
-                rle::decode(&input)
+                huffman::decode(&input).expect("compressed file is broken")
             };
             fs::write(&args[3], &output).expect("cannot write output");
         }
