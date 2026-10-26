@@ -105,11 +105,11 @@
 
 **Ziel:** Der Motor, der jede Vorhersage in möglichst wenige Bits verwandelt. Der schwierigste und lehrreichste Teil.
 
-- [ ] Theorie verstehen: Ein Intervall [0,1) wird mit jedem Symbol weiter eingeengt
-- [ ] **Binären** arithmetischen Kodierer bauen (kodiert Bit für Bit mit Wahrscheinlichkeit p), wie in lpaq1
-- [ ] Ganzzahl-Arithmetik (32 Bit), keine Gleitkommazahlen, damit Encoder und Decoder exakt übereinstimmen
-- [ ] Order-0-Modell: zählt pro Bitposition, wie oft 0 oder 1 kam, und passt sich laufend an
-- [ ] Viele Roundtrip-Tests, auch mit Spezialfällen: leere Datei, 1 Byte, nur Nullen, Zufallsdaten
+- [X] Theorie verstehen: Ein Intervall [0,1) wird mit jedem Symbol weiter eingeengt
+- [X] **Binären** arithmetischen Kodierer bauen (kodiert Bit für Bit mit Wahrscheinlichkeit p), wie in lpaq1
+- [X] Ganzzahl-Arithmetik (32 Bit), keine Gleitkommazahlen, damit Encoder und Decoder exakt übereinstimmen
+- [X] Order-0-Modell: zählt pro Bitposition, wie oft 0 oder 1 kam, und passt sich laufend an
+- [X] Viele Roundtrip-Tests, auch mit Spezialfällen: leere Datei, 1 Byte, nur Nullen, Zufallsdaten
 - [ ] Optional: **Fuzzing** mit `cargo-fuzz`, findet Randfälle, an die du nie gedacht hättest
 
 **Konzepte:** Intervallteilung, Renormalisierung, adaptive Wahrscheinlichkeiten
