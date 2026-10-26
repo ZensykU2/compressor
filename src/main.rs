@@ -1,6 +1,8 @@
 mod arithmetic;
 mod bits;
+mod cm;
 mod huffman;
+mod model;
 mod rle;
 use std::env;
 use std::fs;
@@ -46,9 +48,9 @@ fn main() {
             }
             let input = fs::read(&args[2]).expect("cannot read input");
             let output = if args[1] == "compress" {
-                huffman::encode(&input)
+                cm::encode(&input)
             } else {
-                huffman::decode(&input).expect("compressed file is broken")
+                cm::decode(&input).expect("compressed file is broken")
             };
             fs::write(&args[3], &output).expect("cannot write output");
         }
