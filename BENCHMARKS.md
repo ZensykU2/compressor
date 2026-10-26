@@ -16,3 +16,5 @@
 Order-0 is only the Minimum for a model without a brain. 
 Who knows, what previously existed can better predict. 
 After 'a' will always be 'b', thats costs almost 0 Bits.
+
+Idee für Phase 4/5: PROB_BITS 12 → 16, dazu die genaue Multiplikation in 64 Bit. Erwartet: Gewinn bei nci/xml.
