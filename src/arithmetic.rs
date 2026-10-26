@@ -91,6 +91,10 @@ impl<'a> Decoder<'a> {
         decoder
     }
 
+    pub fn is_past_end(&self) -> bool {
+        self.pos > self.input.len()
+    }
+
     /// Next input byte, or 0 if we are past the end.
     fn next_byte(&mut self) -> u8 {
         let byte = self.input.get(self.pos).copied().unwrap_or(0);
@@ -145,6 +149,7 @@ mod tests {
         let mut decoder = Decoder::new(&compressed);
         for (i, &bit) in bits.iter().enumerate() {
             assert_eq!(decoder.decode(p1), bit, "wrong bit at position {i}");
+            assert!(!decoder.is_past_end(), "decoder read past the end");
         }
         compressed.len()
     }
@@ -164,10 +169,10 @@ mod tests {
         let predictions = [
             PROB_MIN,
             PROB_MIN + 1,
-            PROB_SCALE / 40,     // 2.5 %
-            PROB_SCALE / 4,      // 25 %
-            PROB_SCALE / 2,      // 50 %
-            PROB_SCALE * 3 / 4,  // 75 %
+            PROB_SCALE / 40,      // 2.5 %
+            PROB_SCALE / 4,       // 25 %
+            PROB_SCALE / 2,       // 50 %
+            PROB_SCALE * 3 / 4,   // 75 %
             PROB_SCALE * 39 / 40, // 97.5 %
             PROB_MAX - 1,
             PROB_MAX,

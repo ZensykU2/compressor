@@ -36,7 +36,11 @@ pub fn decode(input: &[u8]) -> Option<Vec<u8>> {
             model.update(bit);
             byte = (byte << 1) | bit as u8;
         }
-        output.push(byte)
+        output.push(byte);
+
+        if decoder.is_past_end() {
+            return None;
+        }
     }
     Some(output)
 }
@@ -84,5 +88,21 @@ mod tests {
     #[test]
     fn too_short_input_is_rejected() {
         assert_eq!(decode(&[1, 2, 3]), None);
+    }
+
+    #[test]
+    fn truncated_input_is_rejected() {
+        let text = b"the quick brown fox jumps over the lazy dog".repeat(20);
+        let compressed = encode(&text);
+        let cut = &compressed[..compressed.len() - 2];
+        assert_eq!(decode(cut), None);
+    }
+
+    #[test]
+    fn impossible_length_is_rejected() {
+        // Claims 50 MB, but the body has only 3 bytes
+        let mut fake = 50_000_000u64.to_le_bytes().to_vec();
+        fake.extend([1, 2, 3]);
+        assert_eq!(decode(&fake), None);
     }
 }

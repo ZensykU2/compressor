@@ -115,6 +115,10 @@ pub fn decode(input: &[u8]) -> Option<Vec<u8>> {
     let lengths: [u8; SYMBOLS] = input[LENGTH_SIZE..HEADER_SIZE].try_into().unwrap();
     let body = &input[HEADER_SIZE..];
 
+    if lengths.iter().any(|&length| length > MAX_CODE_LENGTH) {
+        return None;
+    }
+
     // Every byte needs at least 1 bit. If the header claims more bytes
     // than the body can possibly hold, the file is broken.
     if original_len > body.len() * 8 {
@@ -240,5 +244,12 @@ mod tests {
     #[test]
     fn too_short_input_is_rejected() {
         assert_eq!(decode(&[1, 2, 3]), None);
+    }
+
+    #[test]
+    fn corrupt_code_length_is_rejected() {
+        let mut compressed = encode(b"hello");
+        compressed[LENGTH_SIZE + b'h' as usize] = MAX_CODE_LENGTH + 1;
+        assert_eq!(decode(&compressed), None);
     }
 }

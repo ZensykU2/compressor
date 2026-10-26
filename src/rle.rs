@@ -20,7 +20,10 @@ pub fn encode(input: &[u8]) -> Vec<u8> {
     output
 }
 
-pub fn decode(input: &[u8]) -> Vec<u8> {
+pub fn decode(input: &[u8]) -> Option<Vec<u8>> {
+    if input.len() % 2 != 0 {
+        return None;
+    }
     let mut output = Vec::new();
     for pair in input.chunks_exact(2) {
         let run = pair[0] as usize + 1;
@@ -29,7 +32,7 @@ pub fn decode(input: &[u8]) -> Vec<u8> {
             output.push(value);
         }
     }
-    output
+    Some(output)
 }
 
 #[cfg(test)]
@@ -38,7 +41,12 @@ mod tests {
 
     // Helper: encode, decode, and check for original return
     fn roundtrip(data: &[u8]) {
-        assert_eq!(decode(&encode(data)), data)
+        assert_eq!(decode(&encode(data)), Some(data.to_vec()));
+    }
+
+    #[test]
+    fn odd_length_is_rejected() {
+        assert_eq!(decode(&[2, 7, 9]), None);
     }
 
     #[test]
