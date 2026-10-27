@@ -12,36 +12,56 @@ const LEARNING_RATE: u32 = 4;
 
 const NODES: usize = 1 << u8::BITS;
 
-/// Up to this order in the table fits into memory directly.
-/// Higher orders need a hash table.
-pub const MAX_DIRECT_ORDER: u32 = 2;
+/// The history is a u64, so it holds at most 7 bytes.
+pub const MAX_ORDER: u32 = 7;
+
+/// The table has 2^TABLE_BITS slots. Each context gets a block of NODES slots,
+/// so there are 2^BLOCK_BITS blocks.
+const TABLE_BITS: u32 = 24;
+const BLOCK_BITS: u32 = TABLE_BITS - u8::BITS;
+
+/// Golden ratio * 2'64. Multiplying by it mixes all input bits into the top bits.
+const HASH_MULTIPLIER: u64 = 0x9E37_79B9_7F4A_7C15;
 
 pub struct ContextModel {
     probs: Vec<u32>,
-    order: u32,
-    history: usize,
+    history: u64,
+    history_mask: u64,
+    block_bits: u32,
+    hashed: bool,
+    block: usize,
     node: usize,
 }
 
 impl ContextModel {
     pub fn new(order: u32) -> Self {
-        assert!(
-            order <= MAX_DIRECT_ORDER,
-            "order too large for a direct table"
-        );
-
-        let size = 1 << (u8::BITS * (order + 1));
+        assert!(order <= MAX_ORDER, "order too large");
+        let context_bits = u8::BITS * order;
+        let block_bits = context_bits.min(BLOCK_BITS);
         ContextModel {
-            probs: vec![STATE_SCALE / 2; size],
-            order,
+            probs: vec![STATE_SCALE / 2; 1 << (block_bits + u8::BITS)],
             history: 0,
+            history_mask: (1 << context_bits) - 1,
+            block_bits,
+            hashed: context_bits > BLOCK_BITS,
+            block: 0,
             node: 1,
         }
     }
 
-    /// Where in the table the current context lives: [history bytes][node]
+    /// Which block belongs to the current history.
+    fn block_of(&self) -> usize {
+        if self.hashed {
+            // Take the TOP bits of the product: they depend on every input bit
+            (self.history.wrapping_mul(HASH_MULTIPLIER) >> (u64::BITS - self.block_bits)) as usize
+        } else {
+            self.history as usize
+        }
+    }
+
+    /// Where in the table the current context lives: [block][node]
     fn index(&self) -> usize {
-        (self.history << u8::BITS) | self.node
+        (self.block << u8::BITS) | self.node
     }
 
     /// Probability that the next bit is 1, in the coder's units.
@@ -62,10 +82,9 @@ impl ContextModel {
 
         self.node = self.node * 2 + bit as usize;
         if self.node >= NODES {
-            let byte = self.node - NODES;
-            // Push it into the history and keep only the last order bytes
-            let mask = (1 << (u8::BITS * self.order)) - 1;
-            self.history = ((self.history << u8::BITS) | byte) & mask;
+            let byte = (self.node - NODES) as u64;
+            self.history = ((self.history << u8::BITS) | byte) & self.history_mask;
+            self.block = self.block_of(); // hash once per byte, not per bit
             self.node = 1;
         }
     }
@@ -92,7 +111,7 @@ mod tests {
 
     #[test]
     fn starts_at_fifty_percent() {
-        for order in 0..=MAX_DIRECT_ORDER {
+        for order in 0..=MAX_ORDER {
             assert_eq!(ContextModel::new(order).predict(), PROB_SCALE / 2);
         }
     }
@@ -119,8 +138,30 @@ mod tests {
     }
 
     #[test]
+    fn order3_sees_further_back() {
+        let mut order2 = ContextModel::new(2);
+        let mut order3 = ContextModel::new(3);
+        // After "ab" comes '1' or '2'. Only the byte BEFORE "ab" tells which one.
+        for _ in 0..1000 {
+            for &byte in b"xab1yab2" {
+                cost_in_bits(&mut order2, byte);
+                cost_in_bits(&mut order3, byte);
+            }
+        }
+        for &byte in b"xab" {
+            cost_in_bits(&mut order2, byte);
+            cost_in_bits(&mut order3, byte);
+        }
+        let cost2 = cost_in_bits(&mut order2, b'1');
+        let cost3 = cost_in_bits(&mut order3, b'1');
+        println!("'1' after \"xab\": order-2 {cost2:.3} bits, order-3 {cost3:.3} bits");
+        assert!(cost2 > 0.5);
+        assert!(cost3 < 0.1);
+    }
+
+    #[test]
     fn prediction_stays_in_valid_range() {
-        for order in 0..=MAX_DIRECT_ORDER {
+        for order in 0..=MAX_ORDER {
             let mut model = ContextModel::new(order);
             for i in 0..10_000 {
                 model.update(i % 3 == 0);

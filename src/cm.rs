@@ -1,7 +1,7 @@
 use crate::arithmetic::{Decoder, Encoder};
 use crate::model::ContextModel;
 
-const ORDER: u32 = 1;
+const ORDER: u32 = 4;
 
 const LENGTH_SIZE: usize = size_of::<u64>();
 
