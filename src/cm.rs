@@ -1,5 +1,7 @@
 use crate::arithmetic::{Decoder, Encoder};
-use crate::model::Order0;
+use crate::model::ContextModel;
+
+const ORDER: u32 = 1;
 
 const LENGTH_SIZE: usize = size_of::<u64>();
 
@@ -7,7 +9,7 @@ pub fn encode(data: &[u8]) -> Vec<u8> {
     let mut output = Vec::new();
     output.extend_from_slice(&(data.len() as u64).to_le_bytes());
 
-    let mut model = Order0::new();
+    let mut model = ContextModel::new(ORDER);
     let mut encoder = Encoder::new();
     for &byte in data {
         for i in (0..u8::BITS).rev() {
@@ -26,7 +28,7 @@ pub fn decode(input: &[u8]) -> Option<Vec<u8>> {
     }
     let original_len = u64::from_le_bytes(input[..LENGTH_SIZE].try_into().unwrap()) as usize;
 
-    let mut model = Order0::new();
+    let mut model = ContextModel::new(ORDER);
     let mut decoder = Decoder::new(&input[LENGTH_SIZE..]);
     let mut output = Vec::new();
     for _ in 0..original_len {
