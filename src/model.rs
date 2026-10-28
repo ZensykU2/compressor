@@ -5,10 +5,20 @@ const STATE_SCALE: u32 = 1 << STATE_BITS;
 
 const _: () = assert!(
     STATE_BITS >= PROB_BITS,
-    "STATE_BITS must be atleast PROB_BITS"
+    "STATE_BITS must be at least PROB_BITS"
 );
 
+/// In the long run a counter moves 1/2^LEARNING_RATE towards each new bit.
 const LEARNING_RATE: u32 = 4;
+
+/// A counter learns with weight 1/(count + 2). Once count reaches COUNT_LIMIT,
+/// the weight stays at 1/(COUNT_LIMIT + 2) = 1/2^LEARNING_RATE.
+const COUNT_LIMIT: u8 = ((1u32 << LEARNING_RATE) - 2) as u8;
+
+const _: () = assert!(
+    (1u32 << LEARNING_RATE) - 2 <= u8::MAX as u32,
+    "COUNT_LIMIT must fit into a u8"
+);
 
 const NODES: usize = 1 << u8::BITS;
 
@@ -20,17 +30,18 @@ pub const MAX_ORDER: u32 = 7;
 const TABLE_BITS: u32 = 24;
 const BLOCK_BITS: u32 = TABLE_BITS - u8::BITS;
 
-/// Golden ratio * 2'64. Multiplying by it mixes all input bits into the top bits.
+/// Golden ratio * 2^64. Multiplying by it mixes all input bits into the top bits.
 const HASH_MULTIPLIER: u64 = 0x9E37_79B9_7F4A_7C15;
 
 pub struct ContextModel {
     probs: Vec<u32>,
-    history: u64,
-    history_mask: u64,
-    block_bits: u32,
-    hashed: bool,
-    block: usize,
-    node: usize,
+    counts: Vec<u8>,   // how often each counter has seen a bit (up to COUNT_LIMIT)
+    history: u64,      // the last `order` bytes
+    history_mask: u64, // keeps only those bytes
+    block_bits: u32,   // how many bits choose the block
+    hashed: bool,      // false: history is the block number directly
+    block: usize,      // block of the current context
+    node: usize,       // position in the bit tree (1..=255)
 }
 
 impl ContextModel {
@@ -38,8 +49,10 @@ impl ContextModel {
         assert!(order <= MAX_ORDER, "order too large");
         let context_bits = u8::BITS * order;
         let block_bits = context_bits.min(BLOCK_BITS);
+        let size = 1 << (block_bits + u8::BITS);
         ContextModel {
-            probs: vec![STATE_SCALE / 2; 1 << (block_bits + u8::BITS)],
+            probs: vec![STATE_SCALE / 2; size],
+            counts: vec![0; size],
             history: 0,
             history_mask: (1 << context_bits) - 1,
             block_bits,
@@ -73,11 +86,15 @@ impl ContextModel {
     /// Learn from the bit that really came, then move to the next context.
     pub fn update(&mut self, bit: bool) {
         let i = self.index();
+        let divisor = self.counts[i] as u32 + 2;
         let p = &mut self.probs[i];
         if bit {
-            *p += (STATE_SCALE - *p) >> LEARNING_RATE;
+            *p += (STATE_SCALE - *p) / divisor;
         } else {
-            *p -= *p >> LEARNING_RATE;
+            *p -= *p / divisor;
+        }
+        if self.counts[i] < COUNT_LIMIT {
+            self.counts[i] += 1;
         }
 
         self.node = self.node * 2 + bit as usize;
@@ -96,7 +113,6 @@ mod tests {
     use crate::arithmetic::PROB_SCALE;
 
     /// Feeds one byte into the model and returns how many bits it would cost.
-    /// (Only for tests: uses f64, which the real coder must never do.)
     fn cost_in_bits(model: &mut ContextModel, byte: u8) -> f64 {
         let mut bits = 0.0;
         for i in (0..u8::BITS).rev() {
@@ -135,6 +151,14 @@ mod tests {
         println!("'b' after 'a': order-0 {cost0:.3} bits, order-1 {cost1:.3} bits");
         assert!(cost0 > 0.5);
         assert!(cost1 < 0.1);
+    }
+
+    #[test]
+    fn first_observation_counts_a_lot() {
+        let mut model = ContextModel::new(0);
+        cost_in_bits(&mut model, 0xFF); // the first bit of a byte was a 1 once
+        // One 1 seen: 50 % -> 75 %, not just 50 % -> 53 % as with a fixed rate
+        assert_eq!(model.predict(), PROB_SCALE * 3 / 4);
     }
 
     #[test]
