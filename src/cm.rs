@@ -1,7 +1,5 @@
 use crate::arithmetic::{Decoder, Encoder};
-use crate::model::ContextModel;
-
-const ORDER: u32 = 4;
+use crate::predictor::Predictor;
 
 const LENGTH_SIZE: usize = size_of::<u64>();
 
@@ -9,13 +7,13 @@ pub fn encode(data: &[u8]) -> Vec<u8> {
     let mut output = Vec::new();
     output.extend_from_slice(&(data.len() as u64).to_le_bytes());
 
-    let mut model = ContextModel::new(ORDER);
+    let mut predictor = Predictor::new();
     let mut encoder = Encoder::new();
     for &byte in data {
         for i in (0..u8::BITS).rev() {
             let bit = (byte >> i) & 1 == 1;
-            encoder.encode(bit, model.predict());
-            model.update(bit);
+            encoder.encode(bit, predictor.predict());
+            predictor.update(bit);
         }
     }
     output.extend(encoder.finish());
@@ -28,14 +26,14 @@ pub fn decode(input: &[u8]) -> Option<Vec<u8>> {
     }
     let original_len = u64::from_le_bytes(input[..LENGTH_SIZE].try_into().unwrap()) as usize;
 
-    let mut model = ContextModel::new(ORDER);
+    let mut predictor = Predictor::new();
     let mut decoder = Decoder::new(&input[LENGTH_SIZE..]);
     let mut output = Vec::new();
     for _ in 0..original_len {
         let mut byte = 0u8;
         for _ in 0..u8::BITS {
-            let bit = decoder.decode(model.predict());
-            model.update(bit);
+            let bit = decoder.decode(predictor.predict());
+            predictor.update(bit);
             byte = (byte << 1) | bit as u8;
         }
         output.push(byte);
