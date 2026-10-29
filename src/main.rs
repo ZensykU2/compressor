@@ -1,7 +1,9 @@
 mod arithmetic;
 mod bits;
 mod cm;
+mod counter;
 mod huffman;
+mod match_model;
 mod mixer;
 mod model;
 mod predictor;
