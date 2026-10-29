@@ -20,7 +20,7 @@ const _: () = assert!(
     "COUNT_LIMIT must fit into a u8"
 );
 
-const NODES: usize = 1 << u8::BITS;
+pub const NODES: usize = 1 << u8::BITS;
 
 /// The history is a u64, so it holds at most 7 bytes.
 pub const MAX_ORDER: u32 = 7;
