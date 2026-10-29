@@ -124,10 +124,10 @@
 
 **Ziel:** Bessere Vorhersage, weil das Modell weiss, was vorher kam.
 
-- [ ] Order-1-Modell: Vorhersage abhängig vom letzten Byte
-- [ ] Order-2, -3, -4: Kontext = letzte 2–4 Bytes, gespeichert in einer **Hashtabelle**
-- [ ] Zustandszähler / Lernrate: schnell anpassen am Anfang, stabil später
-- [ ] Jedes Modell einzeln testen und in `BENCHMARKS.md` eintragen
+- [X] Order-1-Modell: Vorhersage abhängig vom letzten Byte
+- [X] Order-2, -3, -4: Kontext = letzte 2–4 Bytes, gespeichert in einer **Hashtabelle**
+- [X] Zustandszähler / Lernrate: schnell anpassen am Anfang, stabil später
+- [X] Jedes Modell einzeln testen und in `BENCHMARKS.md` eintragen
 
 **Konzepte:** Kontext, Hashing, Kollisionen, «Context Dilution» (zu lange Kontexte haben zu wenig Daten)
 
@@ -139,9 +139,9 @@
 
 **Ziel:** Deine ursprüngliche Idee: Mehrere Vorhersagen werden gewichtet, und die Gewichte lernen während des Kodierens.
 
-- [ ] `stretch(p) = ln(p / (1−p))` und `squash(x) = 1 / (1 + e^−x)` implementieren (als Lookup-Tabelle für Tempo)
-- [ ] Mixer: `p_final = squash(Σ gewicht_i · stretch(p_i))`
-- [ ] Nach jedem Bit: `gewicht_i += lernrate · fehler · stretch(p_i)` (ein Schritt Gradientenabstieg)
+- [X] `stretch(p) = ln(p / (1−p))` und `squash(x) = 1 / (1 + e^−x)` implementieren (als Lookup-Tabelle für Tempo)
+- [X] Mixer: `p_final = squash(Σ gewicht_i · stretch(p_i))`
+- [X] Nach jedem Bit: `gewicht_i += lernrate · fehler · stretch(p_i)` (ein Schritt Gradientenabstieg)
 - [ ] Mehrere Gewichtssätze, ausgewählt durch einen kleinen Kontext (z. B. Bitposition)
 - [ ] Experimentieren: Lernrate, Anzahl Modelle, Startgewichte
 
