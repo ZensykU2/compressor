@@ -77,7 +77,7 @@ impl ContextModel {
 
 #[cfg(test)]
 mod tests {
-    use super::*
+    use super::*;
     use crate::arithmetic::{PROB_MAX, PROB_MIN, PROB_SCALE};
 
     /// Feeds one byte into the model and returns how many bits it would cost.
