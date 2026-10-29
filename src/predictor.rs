@@ -1,3 +1,4 @@
+use crate::match_model::MatchModel;
 use crate::mixer::Mixer;
 use crate::model::{ContextModel, NODES};
 
@@ -11,6 +12,7 @@ const WEIGHT_SETS: usize = NODES;
 pub struct Predictor {
     models: Vec<ContextModel>,
     probs: Vec<u32>, // predictions of all models for the current bit
+    match_model: MatchModel,
     mixer: Mixer,
     node: usize, // position in the bit tree of the current byte
 }
@@ -22,8 +24,9 @@ impl Predictor {
                 .iter()
                 .map(|&order| ContextModel::new(order))
                 .collect(),
-            probs: vec![0; ORDERS.len()],
-            mixer: Mixer::new(ORDERS.len(), WEIGHT_SETS),
+            probs: vec![0; ORDERS.len() + 1],
+            match_model: MatchModel::new(),
+            mixer: Mixer::new(ORDERS.len() + 1, WEIGHT_SETS),
             node: 1,
         }
     }
@@ -33,6 +36,7 @@ impl Predictor {
         for (p, model) in self.probs.iter_mut().zip(&self.models) {
             *p = model.predict();
         }
+        self.probs[ORDERS.len()] = self.match_model.predict();
         self.mixer.mix(&self.probs, self.node)
     }
 
@@ -42,6 +46,7 @@ impl Predictor {
         for model in &mut self.models {
             model.update(bit);
         }
+        self.match_model.update(bit);
         self.node = self.node * 2 + bit as usize;
         if self.node >= NODES {
             self.node = 1;
