@@ -1,3 +1,4 @@
+use crate::apm::Apm;
 use crate::match_model::MatchModel;
 use crate::mixer::Mixer;
 use crate::model::{ContextModel, NODES};
@@ -15,6 +16,8 @@ pub struct Predictor {
     match_model: MatchModel,
     mixer: Mixer,
     node: usize, // position in the bit tree of the current byte
+    apm: Apm,
+    last_byte: usize,
 }
 
 impl Predictor {
@@ -28,6 +31,8 @@ impl Predictor {
             match_model: MatchModel::new(),
             mixer: Mixer::new(ORDERS.len() + 1, WEIGHT_SETS),
             node: 1,
+            apm: Apm::new(NODES * NODES),
+            last_byte: 0,
         }
     }
 
@@ -37,18 +42,23 @@ impl Predictor {
             *p = model.predict();
         }
         self.probs[ORDERS.len()] = self.match_model.predict();
-        self.mixer.mix(&self.probs, self.node)
+        let p = self.mixer.mix(&self.probs, self.node);
+        let refined = self.apm.refine(p, self.last_byte * NODES + self.node);
+        // Trust the correction 3/4, keep the 1/4 of the original
+        (p + 3 * refined) / 4
     }
 
     /// Everybody learns from the bit that really came.
     pub fn update(&mut self, bit: bool) {
         self.mixer.update(bit);
+        self.apm.update(bit);
         for model in &mut self.models {
             model.update(bit);
         }
         self.match_model.update(bit);
         self.node = self.node * 2 + bit as usize;
         if self.node >= NODES {
+            self.last_byte = self.node - NODES;
             self.node = 1;
         }
     }
